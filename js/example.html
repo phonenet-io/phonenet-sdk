@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Demo Phonenet Call</title>
+    <script src="./lib/jquery.min.js"></script>
+    <script src="./lib/jssip.min.js"></script>
+</head>
+<body>
+<input id="number"/>
+<button id="call">Gọi</button>
+<button id="end">Dừng</button>
+<br/>
+<p id="status"></p>
+<script>
+    let host = 'dev.phonenet.vn';
+    let ext = '10000';
+    let password = 'matkhau123';
+    let contact_uri = 'sip:'+ext+'@'+Math.random().toString(36).substring(2, 15)+'.invalid;transport=ws';
+    let phone = null;
+    let call = null;
+
+    let callOptions = {
+        mediaConstraints: {
+            audio: true,
+            video: false
+        },
+        pcConfig: {
+            iceServers: [
+                {
+                    urls: [
+                        'stun:stun-vn-01.phonenet.io',
+                        'stun:stun.l.google.com:19302'
+                    ]
+                },
+            ],
+        }
+    };
+
+    $(document).ready(() => {
+        //Kiểm tra có được sử dụng mic không
+        navigator.mediaDevices.getUserMedia({audio: true}).then(() => {
+
+            //Kết nối webrtc tới phonenet
+            phone = new JsSIP.UA({
+                sockets: [new JsSIP.WebSocketInterface('wss://' + host + ':7443')],
+                uri: 'sip:' + ext + '@' + host,
+                realm: host,
+                ha1: md5(ext+':'+host+':'+password),
+                contact_uri: contact_uri,
+                session_timers: false,
+            });
+            phone.on('registered', (e) => {
+                //Kết nối thành công
+                console.log('Phone registered');
+                $('#status').text('Điện thoại sẵn sàng');
+                console.log(e);
+                //Thực hiện gọi
+                $('#call').click(() => {
+                    if($('#number').val() != '') {
+                        phone.call($('#number').val(), callOptions);
+                        $('#end').click(() => {
+                            call.terminate();
+                        });
+                        $('#status').text('Đang gọi');
+                    }else{
+                        alert('Mời nhập số');
+                    }
+                });
+            });
+            phone.on('disconnected', () => {
+                //Mất kết nối, thông thường nó sẽ tự kết mối lại
+                $('#status').text('Mất kết nối');
+                console.log('Phone disconnected');
+            });
+            phone.start();
+            phone.on("newRTCSession", (data) => {
+                //Có cuộc gọi mới
+                call = data.session;
+                if (call.direction === "incoming") {
+                    $('#status').text('Có cuộc gọi đến, bấm trả lời để nhận');
+                    $('#answer').click(() => {
+                        call.answer(callOptions);
+                    });
+                }
+                call.on("icecandidate", (e) => {
+                    setTimeout(() => {
+                        e.ready();
+                    }, 10000);
+                });
+                call.on("progress", function () {
+                    //Đổ chuông
+                    $('#status').text('Đang đổ chuông');
+                    console.log('progress');
+                });
+                call.on("accepted", function () {
+                    //Đầu khách trả lời
+                    $('#status').text('Đang đàm thoại');
+                    console.log('accepted');
+                });
+                call.on("confirmed", function () {
+                    //Kết nối ok
+                    $('#status').text('Đang đàm thoại');
+                    console.log('confirmed');
+                });
+                call.on("ended", function () {
+                    //Cuộc gọi dừng
+                    $('#status').text('Đã kết thúc cuộc gọi');
+                    console.log('ended');
+                });
+                call.on("failed", function (e) {
+                    //Thất bại
+                    $('#status').text('Cuộc gọi thất bại');
+                    console.log('failed');
+                    console.log(e);
+                });
+                console.log(this.call);
+                call.connection.onaddstream = function (e) {
+                    const remoteAudio = document.createElement('audio');
+                    remoteAudio.srcObject = e.stream;
+                    remoteAudio.play();
+                };
+            });
+        }).catch(() => {
+            //K có mic
+            alert('Máy tính không có mic hoặc không được cấp quyền dùng mic!');
+        });
+    });
+</script>
+</body>
+</html>
