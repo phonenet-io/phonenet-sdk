@@ -16,7 +16,7 @@
     let host = 'dev.phonenet.vn';
     let ext = '10000';
     let password = 'matkhau123';
-    let contact_uri = 'sip:'+ext+'@'+Math.random().toString(36).substring(2, 15)+'.invalid;transport=ws';
+    let contact_uri = 'sip:' + ext + '@' + Math.random().toString(36).substring(2, 15) + '.invalid;transport=ws';
     let phone = null;
     let call = null;
 
@@ -46,7 +46,7 @@
                 sockets: [new JsSIP.WebSocketInterface('wss://' + host + ':7443')],
                 uri: 'sip:' + ext + '@' + host,
                 realm: host,
-                ha1: md5(ext+':'+host+':'+password),
+                ha1: md5(ext + ':' + host + ':' + password),
                 contact_uri: contact_uri,
                 session_timers: false,
             });
@@ -57,13 +57,18 @@
                 console.log(e);
                 //Thực hiện gọi
                 $('#call').click(() => {
-                    if($('#number').val() != '') {
+                    if ($('#number').val() != '') {
                         phone.call($('#number').val(), callOptions);
+                        call.connection.onaddstream = function (e) {
+                            const remoteAudio = document.createElement('audio');
+                            remoteAudio.srcObject = e.stream;
+                            remoteAudio.play();
+                        };
                         $('#end').click(() => {
                             call.terminate();
                         });
                         $('#status').text('Đang gọi');
-                    }else{
+                    } else {
                         alert('Mời nhập số');
                     }
                 });
@@ -81,6 +86,12 @@
                     $('#status').text('Có cuộc gọi đến, bấm trả lời để nhận');
                     $('#answer').click(() => {
                         call.answer(callOptions);
+
+                        call.connection.onaddstream = function (e) {
+                            const remoteAudio = document.createElement('audio');
+                            remoteAudio.srcObject = e.stream;
+                            remoteAudio.play();
+                        };
                     });
                 }
                 call.on("icecandidate", (e) => {
@@ -115,11 +126,6 @@
                     console.log(e);
                 });
                 console.log(this.call);
-                call.connection.onaddstream = function (e) {
-                    const remoteAudio = document.createElement('audio');
-                    remoteAudio.srcObject = e.stream;
-                    remoteAudio.play();
-                };
             });
         }).catch(() => {
             //K có mic
