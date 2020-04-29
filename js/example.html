@@ -81,6 +81,10 @@
             phone.start();
             phone.on("newRTCSession", (data) => {
                 //Có cuộc gọi mới
+                if(call){
+                    data.session.terminate();
+                    return;
+                }
                 call = data.session;
                 if (call.direction === "incoming") {
                     $('#status').text('Có cuộc gọi đến, bấm trả lời để nhận');
@@ -92,6 +96,10 @@
                             remoteAudio.srcObject = e.stream;
                             remoteAudio.play();
                         };
+
+                        $('#end').click(() => {
+                            call.terminate();
+                        });
                     });
                 }
                 call.on("icecandidate", (e) => {
@@ -118,12 +126,14 @@
                     //Cuộc gọi dừng
                     $('#status').text('Đã kết thúc cuộc gọi');
                     console.log('ended');
+                    call = null;
                 });
                 call.on("failed", function (e) {
                     //Thất bại
                     $('#status').text('Cuộc gọi thất bại');
                     console.log('failed');
                     console.log(e);
+                    call = null;
                 });
                 console.log(this.call);
             });
