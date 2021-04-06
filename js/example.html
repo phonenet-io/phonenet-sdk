@@ -13,9 +13,9 @@
 <br/>
 <p id="status"></p>
 <script>
-    let host = 'dev.phonenet.vn';
+    let host = 'dev.phonenet.io';
     let ext = '10000';
-    let password = 'matkhau123';
+    let password = 'matkhau';
     let contact_uri = 'sip:' + ext + '@' + Math.random().toString(36).substring(2, 15) + '.invalid;transport=ws';
     let phone = null;
     let call = null;
@@ -46,11 +46,10 @@
                 sockets: [new JsSIP.WebSocketInterface('wss://' + host + ':7443')],
                 uri: 'sip:' + ext + '@' + host,
                 realm: host,
-                ha1: md5(ext + ':' + host + ':' + password),
-                contact_uri: contact_uri,
-                session_timers: false,
+                password: password,
+                contact_uri: contact_uri
             });
-            phone.on('registered', (e) => {
+            phone.on('connected', (e) => {
                 //Kết nối thành công
                 console.log('Phone registered');
                 $('#status').text('Điện thoại sẵn sàng');
